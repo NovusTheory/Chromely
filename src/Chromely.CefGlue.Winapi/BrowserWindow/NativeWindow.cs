@@ -470,6 +470,15 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
                         break;
                     }
 
+                case WM.NCCALCSIZE:
+                    {
+                        if (_hostConfig.HostFrameless)
+                        {
+                            return IntPtr.Zero;
+                        }
+                        break;
+                    }
+
                 case WM.NCHITTEST:
                     if (_hostConfig.HostFrameless)
                     {
