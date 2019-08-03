@@ -34,7 +34,7 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
 
         protected override bool GetViewRect(CefBrowser browser, ref CefRectangle rect)
         {
-            var size = _window.GetWindowSize();
+            var size = _window.GetClientSize();
             rect.Height = size.Height;
             rect.Width = size.Width;
             return true;
