@@ -550,7 +550,8 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
                 case WM.NCHITTEST:
                     if (_hostConfig.HostFrameless)
                     {
-                        return (IntPtr)NativeMethods.HT_CAPTION;
+                        var lRet = HitTestNCA(hwnd, wParam, lParam);
+                        return lRet;
                     }
                     break;
 
@@ -725,6 +726,12 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
             return User32Methods.DefWindowProc(hwnd, umsg, wParam, lParam);
         }
 
+        /// <summary>
+        /// Handles a key event from WndProc.
+        /// </summary>
+        /// <param name="wmEvent"></param>
+        /// <param name="wParam"></param>
+        /// <param name="lParam"></param>
         private void HandleKeyEvent(WM wmEvent, IntPtr wParam, IntPtr lParam)
         {
             var keyEvent = new CefKeyEvent();
@@ -741,6 +748,65 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
             //keyEvent.Modifiers = TODO: Implement modifiers
 
             OnKeyEvent(keyEvent);
+        }
+
+        /// <summary>
+        /// Tests the non client area.
+        /// </summary>
+        /// <param name="hWnd"></param>
+        /// <param name="wParam"></param>
+        /// <param name="lParam"></param>
+        /// <returns></returns>
+        internal static IntPtr HitTestNCA(IntPtr hWnd, IntPtr wParam, IntPtr lParam)
+        {
+            // Mouse point
+            var mouse = new Point((int)lParam & 0xFFFF, (int)lParam >> 16);
+
+            // Window rect
+            User32Methods.GetWindowRect(hWnd, out var rectWindow);
+
+            // Border sizes
+            int frameSizeY = User32Methods.GetSystemMetrics(SystemMetrics.SM_CYFRAME);
+            int frameSizeX = User32Methods.GetSystemMetrics(SystemMetrics.SM_CXFRAME);
+
+            // Frame rect
+            Rectangle rectFrame = new Rectangle(frameSizeX, frameSizeX, frameSizeY, frameSizeY);
+            User32Methods.AdjustWindowRectEx(ref rectFrame, WindowStyles.WS_OVERLAPPEDWINDOW & ~WindowStyles.WS_CAPTION, false, 0);
+            ushort row = 1;
+            ushort col = 1;
+
+            if (mouse.Y >= rectWindow.Top && mouse.Y < rectWindow.Top + frameSizeY)
+            {
+                // Mouse is on the top border
+                row = 0;
+            }
+            else if (mouse.Y < rectWindow.Bottom && mouse.Y >= rectWindow.Bottom - frameSizeY)
+            {
+                // Mouse is on the bottom border
+                row = 2;
+            }
+
+            // Determine if the point is at the left or right of the window.
+            if (mouse.X >= rectWindow.Left && mouse.X < rectWindow.Left + frameSizeX)
+            {
+                // Mouse is on the left border
+                col = 0;
+            }
+            else if (mouse.X < rectWindow.Right && mouse.X >= rectWindow.Right - frameSizeX)
+            {
+                // Mouse is on the right border
+                col = 2;
+            }
+
+            // Defines the tests to determine what value to return for NCHITTEST
+            HitTestResult[,] hitTests =
+                {
+                    { HitTestResult.HTTOPLEFT,    HitTestResult.HTTOP,     HitTestResult.HTTOPRIGHT },
+                    { HitTestResult.HTLEFT,       HitTestResult.HTNOWHERE, HitTestResult.HTRIGHT },
+                    { HitTestResult.HTBOTTOMLEFT, HitTestResult.HTBOTTOM,  HitTestResult.HTBOTTOMRIGHT }
+                };
+
+            return (IntPtr)hitTests[row, col];
         }
 
         /// <summary>
