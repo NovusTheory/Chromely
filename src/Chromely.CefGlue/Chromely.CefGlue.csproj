@@ -55,12 +55,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="CefGlue_BACKUP\**" />
-    <EmbeddedResource Remove="CefGlue_BACKUP\**" />
-    <None Remove="CefGlue_BACKUP\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="Subprocess\win32\Chromely.CefGlue.Win.Subprocess.exe" />
     <None Remove="Subprocess\win64\Chromely.CefGlue.Win.Subprocess.exe" />
   </ItemGroup>
