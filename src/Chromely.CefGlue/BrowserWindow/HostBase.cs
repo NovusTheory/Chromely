@@ -381,7 +381,7 @@ namespace Chromely.CefGlue.BrowserWindow
                 }
 
                 // MultiThreadedMessageLoop is not allowed to be used as it will break frameless mode
-                settings.MultiThreadedMessageLoop = false;
+                //settings.MultiThreadedMessageLoop = false;
             }
 
             settings.LocalesDirPath = Path.Combine(settings.ResourcesDirPath, "locales");

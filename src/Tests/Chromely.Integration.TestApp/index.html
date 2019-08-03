@@ -1,15 +1,24 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Basic Cross Plattform</title>
 </head>
-<body style="background-color: cornflowerblue;">
+<body style="background-color: whitesmoke; font-size: 14px; overflow: scroll; width: 2000px; height: 2000px;">
 
 <p title="Hello from ToolTip!">Hello World !</p>
+<button onclick="buttonClick()">Test</button>
+<br/>
+<div>
+<textarea></textarea>
+</div>
 
 <script>
     console.log("index.html loaded successfully.");
+
+    function buttonClick() {
+        console.log("Clicked");
+    }
 </script>
 </body>
 </html>

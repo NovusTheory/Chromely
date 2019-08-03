@@ -29,6 +29,11 @@ namespace Chromely.CefGlue.Browser
         private readonly CefLoadHandler _loadHandler;
 
         /// <summary>
+        /// The render handler.
+        /// </summary>
+        private readonly CefRenderHandler _renderHandler;
+
+        /// <summary>
         /// The request handler.
         /// </summary>
         private readonly CefRequestHandler _requestHandler;
@@ -84,11 +89,12 @@ namespace Chromely.CefGlue.Browser
         /// <param name="clientParams">
         /// The client params.
         /// </param>
-        public CefGlueClient(CefGlueClientParams clientParams)
+        public CefGlueClient(CefGlueClientParams clientParams, CefRenderHandler renderHandler)
         {
             CoreBrowser = clientParams.Browser;
             _lifeSpanHandler = clientParams.LifeSpanHandler;
             _loadHandler = clientParams.LoadHandler;
+            _renderHandler = renderHandler;
             _requestHandler = clientParams.RequestHandler;
             _displayHandler = clientParams.DisplayHandler;
             _contextMenuHandler = clientParams.ContextMenuHandler;
@@ -126,6 +132,17 @@ namespace Chromely.CefGlue.Browser
         protected override CefLoadHandler GetLoadHandler()
         {
             return _loadHandler;
+        }
+
+        /// <summary>
+        /// The get render handler.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="CefRenderHandler"/>.
+        /// </returns>
+        protected override CefRenderHandler GetRenderHandler()
+        {
+            return _renderHandler;
         }
 
         /// <summary>

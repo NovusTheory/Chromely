@@ -28,6 +28,7 @@ namespace Xilium.CefGlue
             if (windowInfo == null) throw new ArgumentNullException("windowInfo");
             if (client == null) throw new ArgumentNullException("client");
             if (settings == null) throw new ArgumentNullException("settings");
+            if (windowInfo.WindowlessRenderingEnabled && !client.RenderHandlerExists()) throw new InvalidOperationException("Windowless rendering is enabled but no RenderHandler was setup");
             // TODO: [ApiUsage] if windowInfo.WindowRenderingDisabled && client doesn't provide RenderHandler implementation -> throw exception
 
             var n_windowInfo = windowInfo.ToNative();

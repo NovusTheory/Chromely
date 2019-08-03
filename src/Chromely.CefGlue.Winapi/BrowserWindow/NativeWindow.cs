@@ -64,6 +64,26 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         /// Gets the handle.
         /// </summary>
         public IntPtr Handle { get; private set; }
+        
+        /// <summary>
+        /// Gets or sets the painted bitmap.
+        /// </summary>
+        internal IntPtr Bitmap { get; set; }
+
+        /// <summary>
+        /// Gets or sets the painted bitmap width.
+        /// </summary>
+        internal int BitmapWidth { get; set; }
+
+        /// <summary>
+        /// Gets or sets the painted bitmap height.
+        /// </summary>
+        internal int BitmapHeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets the cursor handle;
+        /// </summary>
+        internal IntPtr Cursor { get; set; }
 
         /// <summary>
         /// The run message loop.
@@ -83,7 +103,7 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
                 }
                 if (ChromelyConfiguration.Instance.HostFrameless || ChromelyConfiguration.Instance.KioskMode)
                 {
-                    CefRuntime.DoMessageLoopWork();
+                    //CefRuntime.DoMessageLoopWork();
                 }
 
                 User32Methods.TranslateMessage(ref msg);
@@ -217,6 +237,57 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         }
 
         /// <summary>
+        /// The on focus.
+        /// </summary>
+        protected virtual void OnFocus()
+        {
+        }
+
+        /// <summary>
+        /// The on focus lost.
+        /// </summary>
+        protected virtual void OnFocusLost()
+        {
+        }
+
+        /// <summary>
+        /// The on mouse move.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        protected virtual void OnMouseMove(int x, int y)
+        {
+        }
+
+        /// <summary>
+        /// The on mouse event.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        protected virtual void OnMouseEvent(int x, int y, CefMouseButtonType buttonType, bool mouseUp)
+        {
+        }
+
+        /// <summary>
+        /// The on mouse scroll event.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="deltaX"></param>
+        /// <param name="deltaY"></param>
+        protected virtual void OnMouseScrollEvent(int x, int y, int deltaX, int deltaY)
+        {
+        }
+
+        /// <summary>
+        /// The on key event.
+        /// </summary>
+        /// <param name="keyEvent"></param>
+        protected virtual void OnKeyEvent(CefKeyEvent keyEvent)
+        {
+        }
+
+        /// <summary>
         /// The create window.
         /// </summary>
         private void CreateWindow()
@@ -256,7 +327,7 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
             var hwnd = User32Methods.CreateWindowEx(
                 styles.Item2,
                 wc.ClassName,
-                _hostConfig.HostFrameless ? string.Empty : _hostConfig.HostTitle,
+                _hostConfig.HostTitle,
                 styles.Item1,
                 0,
                 0,
@@ -407,6 +478,8 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         /// <returns>
         /// The <see cref="IntPtr"/>.
         /// </returns>
+        private bool fDraw = false;
+        private Point ptPrevious;
         private IntPtr WindowProc(IntPtr hwnd, uint umsg, IntPtr wParam, IntPtr lParam)
         {
             var msg = (WM)umsg;
@@ -417,14 +490,6 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
                         if (wParam == (IntPtr)1)
                         {
                             User32Methods.PostMessage(Handle, (uint)WM.CLOSE, IntPtr.Zero, IntPtr.Zero);
-                            return IntPtr.Zero;
-                        }
-                        break;
-                    }
-                case WM.SYSKEYDOWN:
-                    {
-                        if (_hostConfig.KioskMode &&  (wParam == (IntPtr)VirtualKey.F4))
-                        {
                             return IntPtr.Zero;
                         }
                         break;
@@ -474,7 +539,10 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
                     {
                         if (_hostConfig.HostFrameless)
                         {
-                            return IntPtr.Zero;
+                            if (wParam == (IntPtr)1)
+                            {
+                                return IntPtr.Zero;
+                            }
                         }
                         break;
                     }
@@ -485,9 +553,194 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
                         return (IntPtr)NativeMethods.HT_CAPTION;
                     }
                     break;
+
+                case WM.PAINT:
+                    {
+                        if (Bitmap == IntPtr.Zero)
+                            break;
+
+                        var hdc = User32Methods.BeginPaint(Handle, out PaintStruct lpPaint);
+                        var hdcMem = Gdi32Methods.CreateCompatibleDC(hdc);
+                        var oldBitmap = Gdi32Methods.SelectObject(hdcMem, Bitmap);
+
+                        System.Drawing.Bitmap bitmap = System.Drawing.Image.FromHbitmap(Bitmap);
+                        Gdi32Methods.BitBlt(hdc, 0, 0, bitmap.Width, bitmap.Height, hdcMem, 0, 0, BitBltFlags.SRCCOPY);
+                        bitmap.Dispose();
+
+                        Gdi32Methods.SelectObject(hdcMem, oldBitmap);
+                        Gdi32Methods.DeleteDC(hdcMem);
+
+                        User32Methods.EndPaint(Handle, ref lpPaint);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.SETFOCUS:
+                    {
+                        OnFocus();
+                        return IntPtr.Zero;
+                    }
+
+                case WM.KILLFOCUS:
+                    {
+                        OnFocusLost();
+                        return IntPtr.Zero;
+                    }
+
+                case WM.SETCURSOR:
+                    {
+                        var lowWord = ((int)lParam << 16) >> 16;
+                        var hitTest = (HitTestResult)lowWord;
+                        if (hitTest == HitTestResult.HTCLIENT)
+                        {
+                            if (Cursor != IntPtr.Zero)
+                            {
+                                User32Methods.SetCursor(Cursor);
+                                return (IntPtr)1;
+                            }
+                        }
+                        break;
+                    }
+
+                case WM.MOUSEMOVE:
+                    {
+                        var x = (int)lParam & 0xFFFF;
+                        var y = ((int)lParam >> 16) & 0xFFFF;
+                        OnMouseMove(x, y);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.LBUTTONDOWN:
+                    {
+                        var x = (int)lParam & 0xFFFF;
+                        var y = ((int)lParam >> 16) & 0xFFFF;
+                        OnMouseEvent(x, y, CefMouseButtonType.Left, false);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.LBUTTONUP:
+                    {
+                        var x = (int)lParam & 0xFFFF;
+                        var y = ((int)lParam >> 16) & 0xFFFF;
+                        OnMouseEvent(x, y, CefMouseButtonType.Left, true);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.RBUTTONDOWN:
+                    {
+                        var x = (int)lParam & 0xFFFF;
+                        var y = ((int)lParam >> 16) & 0xFFFF;
+                        OnMouseEvent(x, y, CefMouseButtonType.Right, false);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.RBUTTONUP:
+                    {
+                        var x = (int)lParam & 0xFFFF;
+                        var y = ((int)lParam >> 16) & 0xFFFF;
+                        OnMouseEvent(x, y, CefMouseButtonType.Right, true);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.MOUSEWHEEL:
+                    {
+                        var keys = (MouseInputKeyStateFlags)NativeMethods.GET_KEYSTATE_WPARAM(wParam);
+                        var delta = NativeMethods.GET_WHEEL_DELTA_WPARAM(wParam);
+                        var x = (int)lParam & 0xFFFF;
+                        var y = ((int)lParam >> 16) & 0xFFFF;
+                        OnMouseScrollEvent(x, y, 0, delta);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.MOUSEHWHEEL:
+                    {
+                        var keys = (MouseInputKeyStateFlags)NativeMethods.GET_KEYSTATE_WPARAM(wParam);
+                        var delta = NativeMethods.GET_WHEEL_DELTA_WPARAM(wParam);
+                        var x = (int)lParam & 0xFFFF;
+                        var y = ((int)lParam >> 16) & 0xFFFF;
+                        OnMouseScrollEvent(x, y, -delta, 0);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.SYSKEYDOWN:
+                    {
+                        if (_hostConfig.KioskMode && (wParam == (IntPtr)VirtualKey.F4))
+                        {
+                            return IntPtr.Zero;
+                        }
+
+                        HandleKeyEvent(msg, wParam, lParam);
+                        return IntPtr.Zero;
+                    }
+
+                case WM.SYSCHAR:
+                case WM.SYSKEYUP:
+                case WM.KEYDOWN:
+                case WM.KEYUP:
+                case WM.CHAR:
+                    {
+                        HandleKeyEvent(msg, wParam, lParam);
+                        return IntPtr.Zero;
+                    }
+
+                    /*case WM.LBUTTONDOWN:
+                        {
+                            fDraw = true;
+                            ptPrevious.X = unchecked((short)(long)lParam);
+                            ptPrevious.Y = unchecked((short)((long)lParam >> 16));
+                            return IntPtr.Zero;
+                        }
+
+                    case WM.LBUTTONUP:
+                        {
+                            if (fDraw)
+                            {
+                                var hdc = User32Methods.GetDC(Handle);
+                                var x = unchecked((short)(long)lParam);
+                                var y = unchecked((short)((long)lParam >> 16));
+
+                                Gdi32Methods.MoveToEx(hdc, ptPrevious.X, ptPrevious.Y, out Point _);
+                                Gdi32Methods.LineTo(hdc, x, y);
+                                User32Methods.ReleaseDC(Handle, hdc);
+                            }
+                            fDraw = false;
+                            return IntPtr.Zero;
+                        }
+
+                    case WM.MOUSEMOVE:
+                        {
+                            if (fDraw)
+                            {
+                                var hdc = User32Methods.GetDC(Handle);
+                                var x = unchecked((short)(long)lParam);
+                                var y = unchecked((short)((long)lParam >> 16));
+
+                                Gdi32Methods.MoveToEx(hdc, ptPrevious.X, ptPrevious.Y, out Point _);
+                                Gdi32Methods.LineTo(hdc, ptPrevious.X = x, ptPrevious.Y = y);
+                                User32Methods.ReleaseDC(Handle, hdc);
+                            }
+                            return IntPtr.Zero;
+                        }*/
             }
 
             return User32Methods.DefWindowProc(hwnd, umsg, wParam, lParam);
+        }
+
+        private void HandleKeyEvent(WM wmEvent, IntPtr wParam, IntPtr lParam)
+        {
+            var keyEvent = new CefKeyEvent();
+            keyEvent.WindowsKeyCode = NativeMethods.LOWORD(wParam);
+            keyEvent.NativeKeyCode = NativeMethods.LOWORD(lParam); // Not sure if this is correct, referenced from CEF implementation
+            keyEvent.IsSystemKey = (wmEvent == WM.SYSCHAR || wmEvent == WM.SYSKEYDOWN || wmEvent == WM.SYSKEYUP);
+
+            if (wmEvent == WM.KEYDOWN || wmEvent == WM.SYSKEYDOWN)
+                keyEvent.EventType = CefKeyEventType.RawKeyDown;
+            else if (wmEvent == WM.KEYUP || wmEvent == WM.SYSKEYUP)
+                keyEvent.EventType = CefKeyEventType.KeyUp;
+            else
+                keyEvent.EventType = CefKeyEventType.Char;
+            //keyEvent.Modifiers = TODO: Implement modifiers
+
+            OnKeyEvent(keyEvent);
         }
 
         /// <summary>

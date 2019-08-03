@@ -192,13 +192,16 @@ namespace Chromely.CefGlue.Browser
         /// <param name="windowInfo">
         /// The window info.
         /// </param>
-        public void Create(CefWindowInfo windowInfo)
+        /// <param name="renderHandler">
+        /// The render handler.
+        /// </param>
+        public void Create(CefWindowInfo windowInfo, CefRenderHandler renderHandler)
         {
             if (_client == null)
             {
                 IoC.RegisterInstance(typeof(CefGlueBrowser), typeof(CefGlueBrowser).FullName, this);
                 ClientParams = CefGlueClientParams.Create(this);
-                _client = new CefGlueClient(ClientParams);
+                _client = new CefGlueClient(ClientParams, renderHandler);
             }
             if (_settings == null)
             {

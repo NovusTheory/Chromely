@@ -213,6 +213,11 @@
             return null;
         }
 
+        internal bool RenderHandlerExists()
+        {
+            return GetRenderHandler() != null;
+        }
+
 
         private cef_request_handler_t* get_request_handler(cef_client_t* self)
         {

@@ -37,6 +37,8 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         /// </summary>
         private IntPtr _browserWindowHandle;
 
+        private readonly CefGlueRenderHandler _renderHandler;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Window"/> class.
         /// </summary>
@@ -53,6 +55,7 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
             Browser = new CefGlueBrowser(this, hostConfig, new CefBrowserSettings());
             Browser.Created += OnBrowserCreated;
             _application = application;
+            _renderHandler = new CefGlueRenderHandler(this);
 
             // Set event handler
             Browser.SetEventHandlers();
@@ -112,7 +115,8 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         {
             var windowInfo = CefWindowInfo.Create();
             windowInfo.SetAsChild(hwnd, new CefRectangle(0, 0, _hostConfig.HostWidth, _hostConfig.HostHeight));
-            Browser.Create(windowInfo);
+            windowInfo.SetAsWindowless(hwnd, false);
+            Browser.Create(windowInfo, _renderHandler);
         }
 
         /// <summary>
@@ -126,19 +130,8 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         /// </param>
         protected override void OnSize(int width, int height)
         {
-            if (_browserWindowHandle != IntPtr.Zero)
-            {
-                if (width == 0 && height == 0)
-                {
-                    // For windowed browsers when the frame window is minimized set the
-                    // browser window size to 0x0 to reduce resource usage.
-                    NativeMethods.SetWindowPos(_browserWindowHandle, IntPtr.Zero, 0, 0, 0, 0, WindowPositionFlags.SWP_NOZORDER | WindowPositionFlags.SWP_NOMOVE | WindowPositionFlags.SWP_NOACTIVATE);
-                }
-                else
-                {
-                    NativeMethods.SetWindowPos(_browserWindowHandle, IntPtr.Zero, 0, 0, width, height, WindowPositionFlags.SWP_NOZORDER);
-                }
-            }
+            if (Browser.CefBrowser != null)
+                Browser.CefBrowser.GetHost().WasResized();
         }
 
         /// <summary>
@@ -147,6 +140,42 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         protected override void OnExit()
         {
             _application.Quit();
+        }
+
+        protected override void OnFocus()
+        {
+            if (Browser.CefBrowser != null)
+                Browser.CefBrowser.GetHost().SendFocusEvent(true);
+        }
+
+        protected override void OnFocusLost()
+        {
+            if (Browser.CefBrowser != null)
+                Browser.CefBrowser.GetHost().SendFocusEvent(false);
+        }
+
+        protected override void OnMouseMove(int x, int y)
+        {
+            if (Browser.CefBrowser != null)
+                Browser.CefBrowser.GetHost().SendMouseMoveEvent(new CefMouseEvent(x, y, CefEventFlags.None), false);
+        }
+
+        protected override void OnMouseEvent(int x, int y, CefMouseButtonType buttonType, bool mouseUp)
+        {
+            if (Browser.CefBrowser != null)
+                Browser.CefBrowser.GetHost().SendMouseClickEvent(new CefMouseEvent(x, y, CefEventFlags.None), buttonType, mouseUp, 1);
+        }
+
+        protected override void OnMouseScrollEvent(int x, int y, int deltaX, int deltaY)
+        {
+            if (Browser.CefBrowser != null)
+                Browser.CefBrowser.GetHost().SendMouseWheelEvent(new CefMouseEvent(x, y, CefEventFlags.None), deltaX, deltaY);
+        }
+
+        protected override void OnKeyEvent(CefKeyEvent keyEvent)
+        {
+            if (Browser.CefBrowser != null)
+                Browser.CefBrowser.GetHost().SendKeyEvent(keyEvent);
         }
 
         /// <summary>
@@ -160,12 +189,12 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         /// </param>
         private void OnBrowserCreated(object sender, EventArgs e)
         {
-            _browserWindowHandle = Browser.CefBrowser.GetHost().GetWindowHandle();
+            /*_browserWindowHandle = Browser.CefBrowser.GetHost().GetWindowHandle();
             if (_browserWindowHandle != IntPtr.Zero)
             {
                 var size = GetClientSize();
                 NativeMethods.SetWindowPos(_browserWindowHandle, IntPtr.Zero, 0, 0, size.Width, size.Height, WindowPositionFlags.SWP_NOZORDER);
-            }
+            }*/
         }
     }
 }

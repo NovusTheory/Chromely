@@ -126,7 +126,7 @@ namespace Chromely.CefGlue.Gtk.BrowserWindow
                     throw new NotSupportedException();
             }
 
-            Browser.Create(windowInfo);
+            Browser.Create(windowInfo, null);
         }
 
         /// <summary>

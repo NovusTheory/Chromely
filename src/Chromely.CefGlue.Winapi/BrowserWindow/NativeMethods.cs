@@ -268,8 +268,28 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
             LLKHF_ALTDOWN = 0x20,
             LLKHF_UP = 0x80,
         }
+
+        internal static ushort HIWORD(IntPtr dwValue)
+        {
+            return (ushort)((((long)dwValue) >> 16) & 0xFFFF);
+        }
+
+        internal static ushort LOWORD(IntPtr dwValue)
+        {
+            return (ushort)(((long)dwValue) & 0xFFFF);
+        }
+
+        internal static int GET_WHEEL_DELTA_WPARAM(IntPtr wParam)
+        {
+            return (short)HIWORD(wParam);
+        }
+
+        internal static int GET_KEYSTATE_WPARAM(IntPtr wParam)
+        {
+            return (short)LOWORD(wParam);
+        }
     }
-       
+
     internal enum DeviceCapsParams
     {
         /// <summary>
