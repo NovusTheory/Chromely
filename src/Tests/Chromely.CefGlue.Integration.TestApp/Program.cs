@@ -10,22 +10,25 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Chromely.CefGlue;
 using Chromely.CefGlue.Browser.EventParams;
 using Chromely.Core;
 using Chromely.Core.Helpers;
 using Chromely.Core.Host;
 
-namespace Chromely.Integration.TestApp
+namespace Chromely.CefGlue.Integration.TestApp
 {
     /// <summary>
-    /// This is a minimal chromely application
-    /// to be used during integration tests.
-    /// Due it is cross platform it MUST NOT
-    /// reference platform specific assemblies.
-    /// It will emit console outputs starting
-    /// with "CI-TRACE:" which are checked
+    /// 
+    /// This is a minimal chromely application to be used during integration tests.
+    ///
+    /// PLEASE NOTE:
+    /// Due it is cross platform it MUST NOT reference PLATFORM SPECIFIC ASSEMBLIES.
+    ///
+    /// Use projects in Chromely-Demo to show platform specific samples !
+    /// 
+    /// It will emit console outputs starting with "CI-TRACE:" which are checked
     /// in the test run - so DON'T REMOVE them.
+    /// 
     /// </summary>
     internal static class Program
     {
@@ -59,10 +62,14 @@ namespace Chromely.Integration.TestApp
                 .WithDebuggingMode(true)
                 .WithLoadingCefBinariesIfNotFound(true)
                 .WithSilentCefBinariesLoading(true)
-                //.WithFramelessHost()
                 .RegisterEventHandler<ConsoleMessageEventArgs>(CefEventKey.ConsoleMessage, OnWebBrowserConsoleMessage)
                 .WithAppArgs(args)
-                .WithHostSize(1000, 600)
+                .WithHostBounds(1000, 600)
+                //.WithHostFlag(HostFlagKey.CenterScreen, true | false - default true)
+                //.WithHostFlag(HostFlagKey.Frameless, true | false -  default false)
+                //.WithHostFlag(HostFlagKey.KioskMode, true | false - default false)
+                .WithHostFlag(HostFlagKey.NoResize, true) // - default false)
+                .WithHostFlag(HostFlagKey.NoMinMaxBoxes, true) // - default false)
                 .WithStartUrl(startUrl);
             CiTrace("Configuration", "Created");
 

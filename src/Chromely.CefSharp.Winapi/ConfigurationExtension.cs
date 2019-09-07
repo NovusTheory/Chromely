@@ -1,5 +1,5 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ChromelyConfigurationExtension.cs" company="Chromely Projects">
+// <copyright file="ConfigurationExtension.cs" company="Chromely Projects">
 //   Copyright (c) 2017-2019 Chromely Projects
 // </copyright>
 // <license>
@@ -15,7 +15,7 @@ namespace Chromely.CefSharp.Winapi
     /// <summary>
     /// The chromely configuration extension.
     /// </summary>
-    public static class ChromelyConfigurationExtension
+    public static class ConfigurationExtension
     {
         /// <summary>
         /// Use default Javascript object handler.

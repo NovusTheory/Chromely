@@ -76,6 +76,22 @@ namespace Chromely.CefSharp.Winapi.BrowserWindow
         public ChromelyConfiguration HostConfig { get; }
 
         /// <summary>
+        /// Gets the window handle.
+        /// </summary>
+        public IntPtr Handle
+        {
+            get
+            {
+                if (_mainView != null)
+                {
+                    return _mainView.Handle;
+                }
+
+                return IntPtr.Zero;
+            }
+        }
+
+        /// <summary>
         /// Gets the browser.
         /// </summary>
         public object Browser => _mainView?.Browser;
@@ -268,8 +284,10 @@ namespace Chromely.CefSharp.Winapi.BrowserWindow
                 if (!assembly.IsScanned)
                 {
                     var scanner = new RouteScanner(assembly.Assembly);
-                    var currentRouteDictionary = scanner.Scan();
+                    var currentRouteDictionary = scanner.Scan().Item1;
+                    var currentCommandDictionary = scanner.Scan().Item2;
                     ServiceRouteProvider.MergeRoutes(currentRouteDictionary);
+                    ServiceRouteProvider.MergeCommands(currentCommandDictionary);
 
                     assembly.IsScanned = true;
                 }
@@ -333,8 +351,9 @@ namespace Chromely.CefSharp.Winapi.BrowserWindow
                 LocalesDirPath = localesDirPath,
                 Locale = HostConfig.Locale,
 
+               // MultiThreadedMessageLoop = true,
                 // MultiThreadedMessageLoop is not allowed to be used as it will break frameless mode
-                MultiThreadedMessageLoop = !(HostConfig.HostFrameless || HostConfig.KioskMode),
+                MultiThreadedMessageLoop = !(HostConfig.HostPlacement.Frameless || HostConfig.HostPlacement.KioskMode),
 
                 CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache"),
                 LogSeverity = (CefSharpGlobal.LogSeverity)HostConfig.LogSeverity,
@@ -354,12 +373,15 @@ namespace Chromely.CefSharp.Winapi.BrowserWindow
 
             _mainView = CreateMainView(_settings);
 
-            if (HostConfig.HostCenterScreen)
+            bool centerScreen = HostConfig.HostPlacement.CenterScreen;
+            if (centerScreen)
             {
                 _mainView.CenterToScreen();
             }
 
             _windowCreated = true;
+
+            IoC.RegisterInstance(typeof(IChromelyWindow), typeof(IChromelyWindow).FullName, this);
 
             RunMessageLoop();
 

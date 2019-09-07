@@ -11,6 +11,7 @@ using System;
 using Chromely.CefGlue.Browser;
 using Chromely.CefGlue.Browser.Handlers;
 using Chromely.CefGlue.BrowserWindow;
+using Chromely.Common;
 using Chromely.Core;
 using WinApi.User32;
 using Xilium.CefGlue;
@@ -36,6 +37,8 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         /// The browser window handle.
         /// </summary>
         private IntPtr _browserWindowHandle;
+
+        private ChromeWidgetMessageInterceptor _interceptor;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Window"/> class.
@@ -64,6 +67,11 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         /// The browser.
         /// </summary>
         public CefGlueBrowser Browser { get; private set; }
+
+        /// <summary>
+        /// Gets the window handle.
+        /// </summary>
+        public IntPtr HostHandle => Handle;
 
         public void CenterToScreen()
         {
@@ -111,7 +119,8 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
         protected override void OnCreate(IntPtr hwnd, int width, int height)
         {
             var windowInfo = CefWindowInfo.Create();
-            windowInfo.SetAsChild(hwnd, new CefRectangle(0, 0, _hostConfig.HostWidth, _hostConfig.HostHeight));
+            var placement = _hostConfig.HostPlacement;
+            windowInfo.SetAsChild(hwnd, new CefRectangle(0, 0, placement.Width, placement.Height));
             Browser.Create(windowInfo);
         }
 
@@ -165,6 +174,22 @@ namespace Chromely.CefGlue.Winapi.BrowserWindow
             {
                 var size = GetClientSize();
                 NativeMethods.SetWindowPos(_browserWindowHandle, IntPtr.Zero, 0, 0, size.Width, size.Height, WindowPositionFlags.SWP_NOZORDER);
+
+                if (_hostConfig.HostPlacement.Frameless && _hostConfig.HostPlacement.FramelessOptions.IsDraggable)
+                {
+                    ChromeWidgetMessageInterceptor.Setup(_interceptor, Handle, _hostConfig.HostPlacement.FramelessOptions, (message) =>
+                    {
+                        var msg = (WM)message.Value;
+                        switch (msg)
+                        {
+                            case WM.LBUTTONDOWN:
+                                User32Methods.ReleaseCapture();
+                                NativeMethods.SendMessage(Handle, (int)WM.SYSCOMMAND, NativeMethods.SC_DRAGMOVE, 0);
+                                break;
+                        }
+
+                    });
+                }
             }
         }
     }

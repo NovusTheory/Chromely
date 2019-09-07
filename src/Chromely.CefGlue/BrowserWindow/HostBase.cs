@@ -77,6 +77,22 @@ namespace Chromely.CefGlue.BrowserWindow
         public ChromelyConfiguration HostConfig { get; }
 
         /// <summary>
+        /// Gets the window handle.
+        /// </summary>
+        public IntPtr Handle
+        {
+            get
+            {
+                if (_mainView != null)
+                {
+                    return _mainView.HostHandle;
+                }
+
+                return IntPtr.Zero;
+            }
+        }
+
+        /// <summary>
         /// Gets the browser.
         /// </summary>
         public object Browser => _mainView?.Browser;
@@ -182,6 +198,7 @@ namespace Chromely.CefGlue.BrowserWindow
         /// </summary>
         public void Close()
         {
+            _mainView?.Exit();
         }
 
         /// <summary>
@@ -266,8 +283,10 @@ namespace Chromely.CefGlue.BrowserWindow
                 if (!assembly.IsScanned)
                 {
                     var scanner = new RouteScanner(assembly.Assembly);
-                    var currentRouteDictionary = scanner.Scan();
+                    var currentRouteDictionary = scanner.Scan().Item1;
+                    var currentCommandDictionary = scanner.Scan().Item2;
                     ServiceRouteProvider.MergeRoutes(currentRouteDictionary);
+                    ServiceRouteProvider.MergeCommands(currentCommandDictionary);
 
                     assembly.IsScanned = true;
                 }
@@ -373,7 +392,7 @@ namespace Chromely.CefGlue.BrowserWindow
                 ResourcesDirPath = Path.GetDirectoryName(new Uri(assembly.CodeBase).LocalPath)
             };
 
-            if (HostConfig.HostFrameless || HostConfig.KioskMode)
+            if (HostConfig.HostPlacement.Frameless || HostConfig.HostPlacement.KioskMode)
             {
                 if (HostConfig.HostApi == ChromelyHostApi.Gtk)
                 {
@@ -439,12 +458,14 @@ namespace Chromely.CefGlue.BrowserWindow
 
             _mainView = CreateMainView();
 
-            if (HostConfig.HostCenterScreen)
+            bool centerScreen = HostConfig.HostPlacement.CenterScreen;
+            if (centerScreen)
             {
                 _mainView.CenterToScreen();
             }
 
             _windowCreated = true;
+            IoC.RegisterInstance(typeof(IChromelyWindow), typeof(IChromelyWindow).FullName, this);
 
             CefBinariesLoader.DeleteTempFiles(tempFiles);
 
